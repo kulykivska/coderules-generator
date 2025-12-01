@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeRules Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg:       #1a1a1a;
+  --surface:  #191919;
+  --surface2: #161616;
+  --surface3: #1c1c1c;
+  --border:   #3a3a3a;
+  --border2:  #303030;
+  --red:      #cc1f1f;
+  --red-dim:  #991818;
+  --red-glow: rgba(204,31,31,0.15);
+  --text:     #e8e8e8;
+  --muted:    #999999;
+  --muted2:   #707070;
+  --white-line: rgba(255,255,255,0.07);
+}
+
+body.light {
+  --bg:       #f0f0f0;
+  --surface:  #e8e8e8;
+  --surface2: #dcdcdc;
+  --surface3: #e2e2e2;
+  --border:   #c0c0c0;
+  --border2:  #cccccc;
+  --red:      #cc1f1f;
+  --red-dim:  #991818;
+  --red-glow: rgba(204,31,31,0.12);
+  --text:     #111111;
+  --muted:    #555555;
+  --muted2:   #777777;
+  --white-line: rgba(0,0,0,0.08);
+}
+
+/* light mode overrides */
+body.light .tag { background: #d8d8d8; color: #444; border-color: #b8b8b8; }
+body.light .tag:hover { border-color: #888; color: #111; }
+body.light .tag.on { background: var(--red-glow); border-color: var(--red); color: var(--red); }
+body.light .check-box { background: #d0d0d0; }
+body.light .check-row input:checked + .check-box { background: var(--red-glow); }
+body.light .fmt-btn { background: #d8d8d8; }
+body.light .out-pre { color: #2a6a2a; }
+body.light .btn-gen::before { background: rgba(255,255,255,0.3); }
+body.light input[type=range] { background: #c0c0c0; }
+body.light body::before { background-image: repeating-linear-gradient(
+  -45deg, transparent, transparent 5px,
+  rgba(0,0,0,0.025) 5px, rgba(0,0,0,0.025) 6px); }
+
+/* THEME SWITCHER */
+.theme-switch {
+  display: flex; align-items: center; gap: 10px;
+  margin-left: auto; padding: 0 24px;
+  border-left: 1px solid var(--border);
+}
+.theme-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8px; letter-spacing: 2px; color: var(--muted);
+  user-select: none;
+}
+.switch-track {
+  width: 40px; height: 20px;
+  background: #333;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  position: relative; cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+body.light .switch-track { background: #bbb; }
+.switch-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--red);
+  transition: transform 0.2s;
+  box-shadow: 0 0 4px rgba(204,31,31,0.5);
+}
+body.light .switch-thumb { transform: translateX(20px); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+/* Carbon fibre texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent, transparent 5px,
+    rgba(255,255,255,0.012) 5px, rgba(255,255,255,0.012) 6px
+  );
+}
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: stretch;
+  overflow: hidden;
+}
+
+/* Red top bar + white sub-line */
+header::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: var(--red);
+}
+header::after {
+  content: '';
+  position: absolute; top: 4px; left: 0; right: 0; height: 1px;
+  background: var(--white-line);
+}
+
+/* Red left stripe */
+.h-stripe {
+  width: 3px; min-width: 3px;
+  background: var(--red);
+  margin-top: 4px;
+}
+
+.h-logo {
+  padding: 18px 32px 16px 18px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.h-eyebrow {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px; letter-spacing: 3px; color: var(--red);
+}
+.h-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 21px; font-weight: 900; letter-spacing: 2px;
+  color: #fff; line-height: 1;
+}
+.h-title em { color: var(--red); font-style: normal; }
+
+/* ── LAYOUT ── */
+.layout {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 72px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.s-sec { padding: 16px 20px; border-bottom: 1px solid var(--border2); }
+
+.s-label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px; letter-spacing: 2px; color: var(--red);
+  margin-bottom: 11px;
+  display: flex; align-items: center; gap: 8px;
+}
+.s-label::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+.sublabel {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px; letter-spacing: 1.5px; color: #777777;
+  margin: 10px 0 7px;
+}
+
+/* TAGS */
+.tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag {
+  padding: 5px 12px;
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: #aaaaaa;
+  cursor: pointer; transition: all 0.12s;
+  user-select: none;
+}
+.tag:hover { border-color: #666; color: #d0d0d0; }
+.tag.on {
+  background: var(--red-glow);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* SLIDERS */
+.slider-block { display: flex; flex-direction: column; gap: 14px; }
+.slider-row { display: flex; flex-direction: column; gap: 5px; }
+.slider-row label {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: #aaaaaa;
+  font-family: 'Rajdhani', sans-serif; font-weight: 500;
+}
+.slider-row label span {
+  color: var(--red);
+  font-family: 'Orbitron', sans-serif; font-size: 10px;
+}
+input[type=range] {
+  -webkit-appearance: none; width: 100%;
+  height: 2px; background: var(--border); border-radius: 1px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  background: var(--red); border-radius: 2px;
+  cursor: pointer;
+}
+
+/* CHECKS */
+.checks { display: flex; flex-direction: column; gap: 9px; }
+.check-row {
+  display: flex; align-items: flex-start; gap: 9px;
+  cursor: pointer; user-select: none;
+}
+.check-row input { display: none; }
+.check-box {
+  width: 14px; height: 14px; min-width: 14px; margin-top: 2px;
+  border: 1px solid var(--border); background: #222;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--red); transition: all 0.12s;
+}
+.check-row input:checked + .check-box {
+  background: var(--red-glow); border-color: var(--red);
+}
+.check-text {
+  font-size: 13px; line-height: 1.4; color: #aaaaaa;
+  font-family: 'Rajdhani', sans-serif; font-weight: 500;
+  transition: color 0.12s;
+}
+.check-row:hover .check-text { color: #d8d8d8; }
+.check-row input:checked ~ .check-text { color: var(--text); }
+
+/* FORMAT */
+.fmt-btns { display: flex; }
+.fmt-btn {
+  flex: 1; padding: 9px 4px; text-align: center;
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 0.5px;
+  border: 1px solid var(--border); border-right: none;
+  background: #222; color: var(--muted);
+  cursor: pointer; transition: all 0.12s; user-select: none;
+}
+.fmt-btn:last-child { border-right: 1px solid var(--border); }
+.fmt-btn:hover { color: #777; }
+.fmt-btn.on { background: var(--red-glow); border-color: var(--red); color: var(--red); }
+
+/* ── MAIN ── */
+.main-panel { display: flex; flex-direction: column; background: var(--bg); min-height: 0; overflow: hidden; }
+
+/* TOOLBAR */
+.toolbar {
+  display: flex; align-items: stretch;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+/* white sub-line under header red bar */
+.toolbar::before {
+  display: none;
+}
+
+.t-tab {
+  display: flex; align-items: center;
+  padding: 0 22px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; letter-spacing: 2px; color: var(--muted);
+  border-right: 1px solid var(--border2);
+  cursor: pointer; transition: all 0.12s;
+  position: relative; user-select: none;
+}
+.t-tab:hover { color: #777; }
+.t-tab.on { color: var(--red); }
+.t-tab.on::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: var(--red);
+}
+
+.t-right {
+  display: flex; align-items: center; gap: 10px;
+  margin-left: auto; padding: 10px 16px;
+}
+
+.btn-copy {
+  padding: 3px 18px;
+  background: transparent; border: 1px solid var(--border);
+  font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1.5px;
+  color: var(--muted); cursor: pointer; transition: all 0.12s;
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-copy:hover { border-color: #555; color: #888; }
+
+.btn-copy__icon {
+  font-size: 20px;
+}
+
+.btn-gen__icon {
+  font-size: 12px;
+}
+
+.btn-gen {
+  padding: 9px 28px;
+  background: var(--red); border: 1px solid var(--red);
+  font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px;
+  color: #fff; cursor: pointer; transition: all 0.15s;
+  position: relative; overflow: hidden;
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* white shimmer on top */
+.btn-gen::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: rgba(255,255,255,0.25);
+}
+.btn-gen:hover { background: #e02525; border-color: #e02525; }
+.btn-gen:active { transform: scale(0.98); }
+
+/* OUTPUT AREA */
+.output-wrap {
+  flex: 1;
+  min-height: 0;        /* critical — lets children shrink */
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 12px;
+  overflow: hidden;
+}
+
+.output-box {
+  flex: 1; display: flex; flex-direction: column;
+  background: var(--surface2); border: 1px solid var(--border);
+  overflow: hidden; min-height: 0;
+  /* fix: need explicit 0 min-height so flex child can scroll */
+}
+
+/* Red top line on output box */
+.output-box::before {
+  content: '';
+  display: block; height: 1px; flex-shrink: 0;
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(204,31,31,0.4);
+}
+
+.out-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; border-bottom: 1px solid var(--border2);
+  background: var(--surface3);
+}
+/* white separator under header */
+.out-header::after {
+  display: none;
+}
+
+.out-led {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red);
+  animation: blink 2.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.out-fname {
+  font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1.5px;
+  color: var(--muted);
+}
+.out-status {
+  margin-left: auto;
+  font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 1.5px;
+  color: var(--red);
+}
+
+.out-pre {
+  flex: 1;
+  min-height: 0;        /* critical — allows flex child to shrink and scroll */
+  padding: 20px 22px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px; line-height: 2; color: #7aaa7a;
+  white-space: pre-wrap; word-break: break-word;
+  scrollbar-width: thin; scrollbar-color: var(--red) var(--border);
+}
+.out-pre::-webkit-scrollbar { width: 5px; }
+.out-pre::-webkit-scrollbar-track { background: var(--surface2); }
+.out-pre::-webkit-scrollbar-thumb { background: var(--red); opacity: 0.6; }
+
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; gap: 12px;
+}
+.empty-icon {
+  width: 48px; height: 48px;
+  border: 1px solid var(--border);
+  background: #222;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: var(--muted);
+}
+.empty-label {
+  font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 2px;
+  color: var(--muted2);
+}
+
+/* TELEMETRY */
+.telemetry {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  overflow: hidden;
+  position: relative;
+}
+/* white top line */
+.telemetry::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: var(--white-line);
+}
+
+.metric {
+  padding: 11px 16px;
+  border-right: 1px solid var(--border2);
+}
+.metric:last-child { border-right: none; }
+.metric-label {
+  font-family: 'Orbitron', sans-serif; font-size: 8px;
+  letter-spacing: 1.5px; color: #777777; margin-bottom: 4px;
+}
+.metric-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 21px; font-weight: 700; color: var(--red); line-height: 1;
+}
+.metric-unit { font-size: 8px; color: var(--muted); margin-left: 2px; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.85);
+  background: var(--surface);
+  border: 1px solid var(--red);
+  border-top: 3px solid var(--red);
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px; letter-spacing: 3px;
+  padding: 22px 40px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 1000;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(204,31,31,0.3);
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.toast-icon {
+  font-size: 22px; color: var(--red);
+}
+.toast-msg {
+  font-size: 10px; letter-spacing: 3px; color: #fff;
+}
+.toast-sub {
+  font-size: 8px; letter-spacing: 1px; color: var(--muted);
+  font-family: 'Rajdhani', sans-serif;
+}
+/* dimmed backdrop */
+.toast-backdrop {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.4);
+  opacity: 0; transition: opacity 0.2s;
+  pointer-events: none;
+}
+.toast-backdrop.show { opacity: 1; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="h-stripe"></div>
+  <div class="h-logo">
+    <div class="h-eyebrow">// SYSTEM</div>
+    <div class="h-title">CODE<em>RULES</em></div>
+  </div>
+  <div class="theme-switch" onclick="toggleTheme()">
+    <span class="theme-label" id="theme-label">DARK</span>
+    <div class="switch-track">
+      <div class="switch-thumb"></div>
+    </div>
+    <span class="theme-label" id="theme-label2">LIGHT</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+
+    <div class="s-sec">
+      <div class="s-label">Language / Runtime</div>
+      <div class="tags">
+        <div class="tag on"  data-g="lang" data-v="Python">Python</div>
+        <div class="tag"     data-g="lang" data-v="TypeScript">TypeScript</div>
+        <div class="tag"     data-g="lang" data-v="JavaScript">JavaScript</div>
+        <div class="tag"     data-g="lang" data-v="Go">Go</div>
+        <div class="tag"     data-g="lang" data-v="Rust">Rust</div>
+        <div class="tag"     data-g="lang" data-v="Java">Java</div>
+        <div class="tag"     data-g="lang" data-v="Kotlin">Kotlin</div>
+        <div class="tag"     data-g="lang" data-v="C#">C#</div>
+        <div class="tag"     data-g="lang" data-v="PHP">PHP</div>
+        <div class="tag"     data-g="lang" data-v="Ruby">Ruby</div>
+        <div class="tag"     data-g="lang" data-v="Swift">Swift</div>
+        <div class="tag"     data-g="lang" data-v="Dart">Dart</div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Framework / Stack</div>
+
+      <div class="sublabel">— Backend</div>
+      <div class="tags">
+        <div class="tag on" data-g="fw" data-v="FastAPI">FastAPI</div>
+        <div class="tag"    data-g="fw" data-v="Django">Django</div>
+        <div class="tag"    data-g="fw" data-v="Flask">Flask</div>
+        <div class="tag"    data-g="fw" data-v="Express">Express</div>
+        <div class="tag"    data-g="fw" data-v="NestJS">NestJS</div>
+        <div class="tag"    data-g="fw" data-v="Fastify">Fastify</div>
+        <div class="tag"    data-g="fw" data-v="Spring Boot">Spring Boot</div>
+        <div class="tag"    data-g="fw" data-v="Ktor">Ktor</div>
+        <div class="tag"    data-g="fw" data-v="ASP.NET Core">ASP.NET Core</div>
+        <div class="tag"    data-g="fw" data-v="Laravel">Laravel</div>
+        <div class="tag"    data-g="fw" data-v="Ruby on Rails">Rails</div>
+        <div class="tag"    data-g="fw" data-v="Gin">Gin</div>
+        <div class="tag"    data-g="fw" data-v="Axum">Axum</div>
+      </div>
+
+      <div class="sublabel">— Frontend</div>
+      <div class="tags">
+        <div class="tag" data-g="fw" data-v="Angular">Angular</div>
+        <div class="tag" data-g="fw" data-v="React">React</div>
+        <div class="tag" data-g="fw" data-v="Next.js">Next.js</div>
+        <div class="tag" data-g="fw" data-v="Vue.js">Vue.js</div>
+        <div class="tag" data-g="fw" data-v="Nuxt.js">Nuxt.js</div>
+        <div class="tag" data-g="fw" data-v="Svelte">Svelte</div>
+        <div class="tag" data-g="fw" data-v="SvelteKit">SvelteKit</div>
+        <div class="tag" data-g="fw" data-v="Astro">Astro</div>
+        <div class="tag" data-g="fw" data-v="Remix">Remix</div>
+      </div>
+
+      <div class="sublabel">— Mobile</div>
+      <div class="tags">
+        <div class="tag" data-g="fw" data-v="Flutter">Flutter</div>
+        <div class="tag" data-g="fw" data-v="React Native">React Native</div>
+        <div class="tag" data-g="fw" data-v="SwiftUI">SwiftUI</div>
+        <div class="tag" data-g="fw" data-v="Jetpack Compose">Jetpack Compose</div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Database</div>
+      <div class="tags">
+        <div class="tag" data-g="db" data-v="PostgreSQL">PostgreSQL</div>
+        <div class="tag" data-g="db" data-v="MySQL">MySQL</div>
+        <div class="tag" data-g="db" data-v="MongoDB">MongoDB</div>
+        <div class="tag" data-g="db" data-v="SQLite">SQLite</div>
+        <div class="tag" data-g="db" data-v="Prisma">Prisma</div>
+        <div class="tag" data-g="db" data-v="TypeORM">TypeORM</div>
+        <div class="tag" data-g="db" data-v="SQLAlchemy">SQLAlchemy</div>
+        <div class="tag" data-g="db" data-v="Drizzle">Drizzle</div>
+      </div>
+
+      <div class="sublabel">— Cache & Queue</div>
+      <div class="tags">
+        <div class="tag" data-g="db" data-v="Redis">Redis</div>
+        <div class="tag" data-g="db" data-v="Celery">Celery</div>
+        <div class="tag" data-g="db" data-v="BullMQ">BullMQ</div>
+        <div class="tag" data-g="db" data-v="RabbitMQ">RabbitMQ</div>
+        <div class="tag" data-g="db" data-v="Kafka">Kafka</div>
+      </div>
+
+      <div class="sublabel">— Containers</div>
+      <div class="tags">
+        <div class="tag" data-g="db" data-v="Docker">Docker</div>
+        <div class="tag" data-g="db" data-v="Podman">Podman</div>
+        <div class="tag" data-g="db" data-v="Kubernetes">Kubernetes</div>
+        <div class="tag" data-g="db" data-v="Helm">Helm</div>
+        <div class="tag" data-g="db" data-v="Terraform">Terraform</div>
+        <div class="tag" data-g="db" data-v="Ansible">Ansible</div>
+      </div>
+
+      <div class="sublabel">— CI / CD</div>
+      <div class="tags">
+        <div class="tag" data-g="db" data-v="GitHub Actions">GitHub Actions</div>
+        <div class="tag" data-g="db" data-v="GitLab CI">GitLab CI</div>
+        <div class="tag" data-g="db" data-v="Bitbucket Pipelines">Bitbucket Pipelines</div>
+        <div class="tag" data-g="db" data-v="Jenkins">Jenkins</div>
+        <div class="tag" data-g="db" data-v="CircleCI">CircleCI</div>
+        <div class="tag" data-g="db" data-v="ArgoCD">ArgoCD</div>
+        <div class="tag" data-g="db" data-v="TeamCity">TeamCity</div>
+      </div>
+
+      <div class="sublabel">— Cloud</div>
+      <div class="tags">
+        <div class="tag" data-g="db" data-v="AWS">AWS</div>
+        <div class="tag" data-g="db" data-v="GCP">GCP</div>
+        <div class="tag" data-g="db" data-v="Azure">Azure</div>
+        <div class="tag" data-g="db" data-v="Vercel">Vercel</div>
+        <div class="tag" data-g="db" data-v="Railway">Railway</div>
+        <div class="tag" data-g="db" data-v="Fly.io">Fly.io</div>
+      </div>
+
+      <div class="sublabel">— Observability</div>
+      <div class="tags">
+        <div class="tag" data-g="obs" data-v="Prometheus">Prometheus</div>
+        <div class="tag" data-g="obs" data-v="Grafana">Grafana</div>
+        <div class="tag" data-g="obs" data-v="OpenTelemetry">OpenTelemetry</div>
+        <div class="tag" data-g="obs" data-v="Datadog">Datadog</div>
+        <div class="tag" data-g="obs" data-v="Sentry">Sentry</div>
+        <div class="tag" data-g="obs" data-v="New Relic">New Relic</div>
+        <div class="tag" data-g="obs" data-v="Jaeger">Jaeger</div>
+        <div class="tag" data-g="obs" data-v="ELK Stack">ELK Stack</div>
+        <div class="tag" data-g="obs" data-v="Loki">Loki</div>
+        <div class="tag" data-g="obs" data-v="Splunk">Splunk</div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Architecture Pattern</div>
+      <div class="tags">
+        <div class="tag on" data-g="arch" data-v="Clean Architecture">Clean Architecture</div>
+        <div class="tag"    data-g="arch" data-v="DDD">DDD</div>
+        <div class="tag"    data-g="arch" data-v="Hexagonal">Hexagonal</div>
+        <div class="tag"    data-g="arch" data-v="Modular Monolith">Modular Monolith</div>
+        <div class="tag"    data-g="arch" data-v="Microservices">Microservices</div>
+        <div class="tag"    data-g="arch" data-v="CQRS">CQRS</div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Strictness &amp; Comments</div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <label>Strictness level <span id="lbl-s">HIGH</span></label>
+          <input type="range" id="sl-s" min="1" max="3" value="3">
+        </div>
+        <div class="slider-row">
+          <label>Comment density <span id="lbl-c">MEDIUM</span></label>
+          <input type="range" id="sl-c" min="1" max="3" value="2">
+        </div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Code Style</div>
+      <div class="tags">
+        <div class="tag" data-g="style" data-v="OOP">OOP</div>
+        <div class="tag" data-g="style" data-v="Functional">Functional</div>
+        <div class="tag" data-g="style" data-v="Functional + OOP">Functional + OOP</div>
+        <div class="tag" data-g="style" data-v="Reactive">Reactive (RxJS)</div>
+        <div class="tag" data-g="style" data-v="Procedural">Procedural</div>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Code Quality Rules</div>
+      <div class="checks">
+        <label class="check-row">
+          <input type="checkbox" id="c-types" checked>
+          <div class="check-box">✓</div>
+          <span class="check-text">Strict typing — no implicit Any</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-solid" checked>
+          <div class="check-box">✓</div>
+          <span class="check-text">SOLID principles</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-dry" checked>
+          <div class="check-box">✓</div>
+          <span class="check-text">DRY — no duplicated logic</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-tests">
+          <div class="check-box"></div>
+          <span class="check-text">Test-first — suggest unit tests</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-err" checked>
+          <div class="check-box">✓</div>
+          <span class="check-text">Explicit error handling</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-sec">
+          <div class="check-box"></div>
+          <span class="check-text">Security — flag injection risks</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-perf">
+          <div class="check-box"></div>
+          <span class="check-text">Performance — async, no N+1</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-small">
+          <div class="check-box"></div>
+          <span class="check-text">Small functions — max 30 lines</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-name" checked>
+          <div class="check-box">✓</div>
+          <span class="check-text">Descriptive naming — no abbrevs</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="c-di">
+          <div class="check-box"></div>
+          <span class="check-text">Dependency injection</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="s-sec">
+      <div class="s-label">Output Format</div>
+      <div class="fmt-btns">
+        <div class="fmt-btn on" data-fmt="cursor">.cursorrules</div>
+        <div class="fmt-btn"    data-fmt="claude">CLAUDE.md</div>
+        <div class="fmt-btn"    data-fmt="system">Sys. Prompt</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MAIN PANEL ── -->
+  <div class="main-panel">
+
+    <div class="toolbar" style="height:46px;">
+      <div class="t-tab on" id="tab-output" onclick="switchTab('output')">OUTPUT</div>
+      <div class="t-tab" id="tab-preview" onclick="switchTab('preview')">PREVIEW</div>
+      <div class="t-right">
+        <button class="btn-copy" onclick="copyOut()"><p class="btn-copy__icon">⎘</p><p>COPY</p></button>
+        <button class="btn-gen"  onclick="generate()"><p class="btn-gen__icon">▶</p><p>GENERATE</p></button>
+      </div>
+    </div>
+
+    <div class="output-wrap">
+      <div class="output-box">
+        <div class="out-header">
+          <div class="out-led"></div>
+          <span class="out-fname" id="out-fname">.cursorrules</span>
+          <span class="out-status" id="out-status">READY</span>
+        </div>
+        <!-- OUTPUT TAB -->
+        <div class="out-pre" id="output">
+          <div class="empty-state">
+            <div class="empty-icon">⚙</div>
+            <div class="empty-label">Configure stack &amp; click Generate</div>
+          </div>
+        </div>
+        <!-- PREVIEW TAB -->
+        <div id="preview-panel" style="display:none;flex:1;overflow-y:auto;padding:20px 24px;font-family:'Rajdhani',sans-serif;">
+          <div id="preview-content">
+            <div class="empty-state">
+              <div class="empty-icon">◈</div>
+              <div class="empty-label">Generate first to see preview</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="telemetry">
+        <div class="metric">
+          <div class="metric-label">RULES GENERATED</div>
+          <div class="metric-val" id="m-rules">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">FRAMEWORKS</div>
+          <div class="metric-val" id="m-fw">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">ARCHITECTURE</div>
+          <div class="metric-val" id="m-arch">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">STRICTNESS</div>
+          <div class="metric-val" id="m-strict">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-backdrop" id="toast-backdrop"></div>
+<div class="toast" id="toast">
+  <div class="toast-icon">✓</div>
+  <div class="toast-msg" id="toast-msg">COPIED TO CLIPBOARD</div>
+  <div class="toast-sub" id="toast-sub">Text saved to clipboard</div>
+</div>
+
+<script>
+
+// ── THEME ──
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('theme-label').style.color  = isLight ? 'var(--muted)' : 'var(--red)';
+  document.getElementById('theme-label2').style.color = isLight ? 'var(--red)'   : 'var(--muted)';
+}
+
+// ── TAB SWITCHER ──
+function switchTab(tab) {
+  const isOutput = tab === 'output';
+  document.getElementById('tab-output').classList.toggle('on', isOutput);
+  document.getElementById('tab-preview').classList.toggle('on', !isOutput);
+  document.getElementById('output').style.display = isOutput ? '' : 'none';
+  document.getElementById('preview-panel').style.display = isOutput ? 'none' : 'flex';
+  if (!isOutput) buildPreview();
+}
+
+// ── PREVIEW BUILDER ──
+function buildPreview() {
+  const raw = document.getElementById('output').textContent;
+  if (!raw.includes('##')) {
+    document.getElementById('preview-content').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-label">Generate first to see preview</div></div>';
+    return;
+  }
+  const html = raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .split('\n').map(line => {
+      if (/^## /.test(line))  return `<div style="color:#cc1f1f;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid #2c2c2c;">${line.replace(/^## /,'')}</div>`;
+      if (/^### /.test(line)) return `<div style="color:#a03030;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;margin:14px 0 6px;">${line.replace(/^### /,'▸ ')}</div>`;
+      if (/^#/.test(line))    return `<div style="color:#3a3a3a;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.8;">${line}</div>`;
+      if (/^- /.test(line))   return `<div style="color:#8a8a8a;font-size:12px;line-height:1.8;padding-left:12px;border-left:2px solid #2c2c2c;margin:2px 0;">${line.replace(/^- /,'')}</div>`;
+      if (/^\d\./.test(line)) return `<div style="color:#8a8a8a;font-size:12px;line-height:1.8;">${line}</div>`;
+      if (line.trim() === '') return `<div style="height:6px;"></div>`;
+      return `<div style="color:#6a6a6a;font-size:12px;line-height:1.8;">${line}</div>`;
+    }).join('');
+  document.getElementById('preview-content').innerHTML = html;
+}
+
+// ── EXPORT ──
+function exportFile() {
+  const txt = document.getElementById('output').textContent;
+  if (!txt.includes('##')) {
+    generate();
+    setTimeout(exportFile, 100);
+    return;
+  }
+  const names = { cursor: '.cursorrules', claude: 'CLAUDE.md', system: 'system_prompt.md' };
+  const fname = names[S.fmt] || '.cursorrules';
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  // show toast
+  showToast('FILE DOWNLOADED', fname);
+}
+
+const S = {
+  lang: new Set(['Python']),
+  fw:   new Set(['FastAPI']),
+  arch: new Set(['Clean Architecture']),
+  db:   new Set(),
+  obs:  new Set(),
+  style: new Set(),
+  fmt:  'cursor'
+};
+
+// Tags
+document.querySelectorAll('.tag[data-g]').forEach(t => {
+  t.addEventListener('click', () => {
+    const g = t.dataset.g, v = t.dataset.v;
+    if (S[g].has(v)) {
+      if (['db','obs','style'].includes(g) || S[g].size > 1) { S[g].delete(v); t.classList.remove('on'); }
+    } else {
+      S[g].add(v); t.classList.add('on');
+    }
+  });
+});
+
+// Format buttons
+document.querySelectorAll('.fmt-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.fmt-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    S.fmt = b.dataset.fmt;
+    const names = { cursor: '.cursorrules', claude: 'CLAUDE.md', system: 'system_prompt.md' };
+    document.getElementById('out-fname').textContent = names[S.fmt];
+  });
+});
+
+// Checkboxes
+document.querySelectorAll('.check-row').forEach(r => {
+  r.addEventListener('click', () => {
+    const cb = r.querySelector('input');
+    cb.checked = !cb.checked;
+    r.querySelector('.check-box').textContent = cb.checked ? '✓' : '';
+  });
+});
+
+// Sliders
+const SL = ['', 'SOFT', 'MID', 'HIGH'];
+const CL = ['', 'MINIMAL', 'MEDIUM', 'VERBOSE'];
+document.getElementById('sl-s').addEventListener('input', e =>
+  document.getElementById('lbl-s').textContent = SL[e.target.value]);
+document.getElementById('sl-c').addEventListener('input', e =>
+  document.getElementById('lbl-c').textContent = CL[e.target.value]);
+
+const chk = id => document.getElementById(id).checked;
+const sld = id => parseInt(document.getElementById(id).value);
+
+function generate() {
+  const langs  = [...S.lang].join(', ');
+  const fws    = [...S.fw].join(', ');
+  const archs  = [...S.arch].join(', ');
+  const dbs    = [...S.db].join(', ');
+  const obss   = [...S.obs].join(', ');
+  const styles = [...S.style].join(', ');
+  const strict  = sld('sl-s');
+  const comments = sld('sl-c');
+
+  const strictTxt = ['','relaxed — treat as guidelines','balanced — consistent, pragmatic exceptions allowed','strict — always enforce, ask before deviating'][strict];
+  const commentTxt = ['','only for complex non-obvious logic','document public interfaces and key decisions','comment every function, class, and non-trivial block'][comments];
+
+  const rules = [];
+  if (chk('c-types')) rules.push('- Use strict typing everywhere. No implicit Any. All functions must have explicit type annotations.');
+  if (chk('c-solid')) rules.push('- Follow SOLID principles. Each class/module has a single responsibility. Prefer composition over inheritance.');
+  if (chk('c-dry'))   rules.push('- DRY — never duplicate logic. Extract reusable utilities, shared helpers, and base classes.');
+  if (chk('c-tests')) rules.push('- Always suggest unit tests when writing new business logic. Use AAA pattern (Arrange, Act, Assert).');
+  if (chk('c-err'))   rules.push('- Handle errors explicitly. No bare except/catch. Use typed exceptions and meaningful error messages.');
+  if (chk('c-sec'))   rules.push('- Flag security risks proactively: SQL injection, hardcoded secrets, unvalidated input, IDOR vulnerabilities.');
+  if (chk('c-perf'))  rules.push('- Prefer async I/O. Avoid N+1 query problems. Use lazy loading and pagination for large datasets.');
+  if (chk('c-small')) rules.push('- Keep functions small: max 30 lines. If longer — extract sub-functions with clear names.');
+  if (chk('c-name'))  rules.push('- Use descriptive names. No abbreviations (usr, tmp, d). Variable names should read like sentences.');
+  if (chk('c-di'))    rules.push('- Use dependency injection. Never instantiate dependencies inside business logic. Depend on abstractions.');
+
+  // Architecture
+  let archTxt = `\n## ARCHITECTURE\n\nYou are working within: ${archs}.\n`;
+  if (archs.includes('Clean'))     archTxt += `\n- Strictly separate layers: Domain → Application → Infrastructure → Presentation\n- Domain layer must never depend on Infrastructure or frameworks\n- Use repository interfaces in Application, implement them in Infrastructure\n- DTOs cross layer boundaries; domain entities must not leak to API responses`;
+  if (archs.includes('DDD'))       archTxt += `\n- Think in bounded contexts. Each context owns its domain model\n- Use Aggregates, Entities, Value Objects, Domain Events\n- Domain logic lives in the domain, not in services or controllers`;
+  if (archs.includes('Hexagonal')) archTxt += `\n- Ports (interfaces) define what the app needs; Adapters implement them\n- Core business logic must be framework-agnostic\n- Drive tests at the port level, not the adapter level`;
+  if (archs.includes('Modular'))   archTxt += `\n- Modules communicate only through explicit public APIs, never by direct import of internals\n- Each module owns its database schema / tables\n- Avoid cross-module transactions; use eventual consistency where needed`;
+  if (archs.includes('Micro'))     archTxt += `\n- Services communicate via contracts (OpenAPI / Protobuf / AsyncAPI)\n- Never share databases between services\n- Each service must be independently deployable`;
+  if (archs.includes('CQRS'))      archTxt += `\n- Separate read models from write models\n- Commands mutate state; Queries never mutate\n- Consider event sourcing for the write side if complexity warrants it`;
+
+  // Framework rules
+  let fwTxt = `\n\n## FRAMEWORK-SPECIFIC RULES\n`;
+  if (fws.includes('Angular'))         fwTxt += `\n### Angular\n- Follow Angular Style Guide strictly (feature.component.ts, feature.service.ts)\n- Use OnPush change detection by default for all components\n- Smart/dumb component pattern: containers handle logic, presentational components are pure\n- Avoid direct DOM manipulation; use Renderer2 or Angular CDK\n- Use NgRx or signals for state management; no service-based state for complex flows\n- Prefer async pipe over manual subscribe/unsubscribe\n- Lazy-load all feature modules via loadChildren\n- Use standalone components (Angular 14+) for new development`;
+  if (fws.includes('React'))           fwTxt += `\n### React\n- Prefer functional components with hooks; no class components for new code\n- Custom hooks must start with "use" and encapsulate a single concern\n- Never mutate state directly; always use setState or reducers\n- Memoize expensive computations with useMemo; wrap callbacks with useCallback\n- Use React Query or SWR for server state; avoid useEffect for data fetching`;
+  if (fws.includes('Next.js'))         fwTxt += `\n### Next.js\n- Use App Router (Next.js 13+) — prefer Server Components by default\n- Mark Client Components with "use client" only when interactivity or browser APIs are needed\n- Avoid fetching data in Client Components; pass data as props from Server Components\n- Use next/image for all images; never use raw <img> tags\n- Route handlers go in app/api; never expose internal services directly`;
+  if (fws.includes('Vue.js'))          fwTxt += `\n### Vue.js\n- Use Composition API with <script setup> for all new components\n- Keep components small — extract composables for reusable logic\n- Use Pinia for state management; avoid Vuex for new projects\n- Props down, events up — no parent mutation from child components\n- Always define prop types explicitly with defineProps<{}>()`;
+  if (fws.includes('Nuxt.js'))         fwTxt += `\n### Nuxt.js\n- Use useFetch / useAsyncData for data fetching, not raw fetch in setup()\n- Place shared composables in ~/composables — auto-imported by Nuxt\n- Prefer server-side rendering; use client-only when strictly necessary`;
+  if (fws.includes('Svelte') || fws.includes('SvelteKit')) fwTxt += `\n### Svelte / SvelteKit\n- Keep component logic minimal — extract stores for shared state\n- Use derived stores for computed values\n- In SvelteKit: use load() for data fetching; never fetch in onMount for SSR routes`;
+  if (fws.includes('FastAPI'))         fwTxt += `\n### FastAPI\n- Use Pydantic v2 models for all request/response schemas — no raw dicts in endpoints\n- Dependency injection via Depends() for services, DB sessions, auth\n- Route handlers must be thin: validate → call service → return response\n- Use lifespan context manager for startup/shutdown; avoid deprecated @app.on_event\n- Async endpoints for all I/O-bound operations; sync only for CPU-bound`;
+  if (fws.includes('Django'))          fwTxt += `\n### Django\n- Fat models, thin views — business logic belongs in model methods or service layer\n- Use Django REST Framework serializers for all API I/O validation\n- Never use .filter() without .select_related()/.prefetch_related() where FK traversal happens\n- Use database transactions explicitly with atomic() for multi-step mutations`;
+  if (fws.includes('Flask'))           fwTxt += `\n### Flask\n- Use application factory pattern (create_app()); never use global app instance\n- Blueprints for all feature areas — no routes registered on app directly\n- Use Flask-Pydantic or marshmallow for request validation; never trust raw request.json`;
+  if (fws.includes('NestJS'))          fwTxt += `\n### NestJS\n- One module per domain feature; modules declare their public exports explicitly\n- Services contain business logic; controllers are thin request/response translators\n- Use class-validator + class-transformer for all DTOs\n- Guards for auth, Interceptors for cross-cutting concerns, Pipes for transformation`;
+  if (fws.includes('Fastify'))         fwTxt += `\n### Fastify\n- Use typed schemas (JSON Schema + TypeBox or Zod) for all routes\n- Register plugins with fastify.register() — encapsulate related routes and hooks`;
+  if (fws.includes('Spring Boot'))     fwTxt += `\n### Spring Boot\n- Use constructor injection; never field injection with @Autowired\n- Controllers → Services → Repositories: never skip layers\n- DTOs for API contracts; never expose JPA entities directly in responses\n- Use @Transactional at service layer, not repository layer`;
+  if (fws.includes('Laravel'))         fwTxt += `\n### Laravel\n- Use Form Requests for validation; never validate in controllers directly\n- Eloquent: use eager loading (with()) to prevent N+1 queries\n- Service classes for business logic; keep controllers RESTful and thin\n- Jobs + Queues for all heavy or async operations`;
+  if (fws.includes('ASP.NET Core'))    fwTxt += `\n### ASP.NET Core\n- Use minimal APIs or controller-based — pick one style per project\n- Register services with correct lifetimes: Singleton / Scoped / Transient\n- Use FluentValidation for request validation\n- MediatR for CQRS pattern: Commands and Queries as separate handlers`;
+  if (fws.includes('Flutter'))         fwTxt += `\n### Flutter\n- Use BLoC or Riverpod for state management; avoid setState beyond widget-local UI state\n- One feature = one folder: screens/, widgets/, bloc/, models/, repositories/\n- Never put business logic in widgets; use repositories and BLoCs\n- Use const constructors wherever possible for performance`;
+  if (fws.includes('React Native'))    fwTxt += `\n### React Native\n- Separate navigation, screens, components, hooks, services into distinct folders\n- Use React Query for server state; avoid useState + useEffect for async data\n- Platform-specific code in .ios.tsx / .android.tsx files`;
+  if (fws.includes('SwiftUI'))         fwTxt += `\n### SwiftUI\n- Follow MVVM: Views are dumb; ViewModels hold state and business logic\n- Use @StateObject for owned view models; @ObservedObject for injected ones\n- Prefer small composable Views over monolithic screens`;
+  if (fws.includes('Jetpack Compose')) fwTxt += `\n### Jetpack Compose\n- Hoist state upward; Composables should be stateless where possible\n- Use ViewModel + StateFlow/SharedFlow for screen state\n- Side effects only in LaunchedEffect / rememberCoroutineScope`;
+  if (fws.includes('Ruby on Rails'))   fwTxt += `\n### Ruby on Rails\n- Skinny controllers, fat models — extract Service Objects for complex domain logic\n- Use Strong Parameters for all mass-assignment\n- Background jobs (Sidekiq/GoodJob) for all mailers and heavy tasks`;
+  if (fws.includes('Gin'))             fwTxt += `\n### Gin\n- Group related routes under a RouterGroup with middleware applied at group level\n- Use ShouldBindJSON for request binding with validation tags\n- Handlers call services; services call repositories — no DB logic in handlers`;
+  if (fws.includes('Ktor'))            fwTxt += `\n### Ktor\n- Use routing DSL to group related routes; separate route definitions from handler logic\n- Dependency injection via Koin; avoid service locator pattern\n- Coroutines for all I/O; never block the event loop with blocking calls`;
+  if (fws.includes('Axum'))            fwTxt += `\n### Axum\n- Use extractors for request parsing; handlers should be pure functions\n- Share state via Arc<AppState> injected at router level\n- Error handling: implement IntoResponse for custom error types`;
+  if (fws.includes('Remix'))           fwTxt += `\n### Remix\n- Use loaders for all data fetching; actions for all mutations\n- Rely on nested routes for layout composition\n- Use Form and useFetcher over raw fetch`;
+  if (fws.includes('Astro'))           fwTxt += `\n### Astro\n- Default to zero JS: use server-rendered Astro components\n- Use islands (client:load / client:visible) sparingly\n- Use content collections for typed Markdown/MDX content`;
+
+  // Database & Infrastructure rules
+  let dbTxt = '';
+  if (S.db.size > 0) {
+    dbTxt = `\n\n## DATABASE & INFRASTRUCTURE RULES\n`;
+    if (dbs.includes('PostgreSQL'))     dbTxt += `\n### PostgreSQL\n- All queries go through repository interfaces — no raw SQL in services or controllers\n- Prevent N+1: always use eager loading (joinedload / selectinload / include)\n- Every migration must be reversible; test rollback before merging\n- Use transactions explicitly for multi-step writes; never rely on auto-commit\n- Add indexes for every foreign key and frequently filtered column\n- Soft deletes only (deleted_at): never hard DELETE on business-critical data\n- EXPLAIN ANALYZE any query touching > 1000 rows before shipping`;
+    if (dbs.includes('MySQL'))          dbTxt += `\n### MySQL\n- Use InnoDB engine; never MyISAM for transactional data\n- All queries through repository layer — no raw SQL in business logic\n- Use parameterized queries always — never string interpolation in SQL\n- Add covering indexes for high-frequency SELECT patterns\n- Use transactions for multi-step writes; handle deadlocks with retry logic`;
+    if (dbs.includes('MongoDB'))        dbTxt += `\n### MongoDB\n- Define schemas with Mongoose or Zod — never store unvalidated documents\n- Use indexes on all query fields; run explain() to verify index usage\n- Avoid unbounded arrays in documents — use references for large collections\n- Transactions for multi-document writes that must be atomic\n- Never expose _id directly in API responses — map to a public id field`;
+    if (dbs.includes('SQLite'))         dbTxt += `\n### SQLite\n- Enable WAL mode for concurrent reads: PRAGMA journal_mode=WAL\n- Use parameterized queries — never string interpolation\n- Wrap multi-step writes in explicit transactions for performance and safety\n- Not suitable for high-concurrency production writes — document this constraint`;
+    if (dbs.includes('Prisma'))         dbTxt += `\n### Prisma\n- All DB access through Prisma Client — never raw queries except for migrations\n- Use select/include explicitly — never fetch entire models when a subset is enough\n- Transactions via prisma.$transaction() for multi-step mutations\n- Run prisma generate in CI to catch schema drift early\n- Never commit prisma/migrations without peer review`;
+    if (dbs.includes('TypeORM'))        dbTxt += `\n### TypeORM\n- Use Repository pattern — inject repositories via DI, never use getRepository() globally\n- Eager loading via relations option or QueryBuilder — never let N+1 reach production\n- Migrations only via TypeORM CLI — never synchronize:true in production\n- Use transactions (QueryRunner) for operations touching multiple entities`;
+    if (dbs.includes('SQLAlchemy'))     dbTxt += `\n### SQLAlchemy\n- Always use async sessions (AsyncSession) for async FastAPI/Starlette apps\n- Repositories receive the session via DI — never create sessions inside business logic\n- Use selectinload() / joinedload() to prevent N+1 on relationships\n- Wrap multi-step writes in async with session.begin() transactions\n- Migrations via Alembic — every migration tested with both upgrade and downgrade`;
+    if (dbs.includes('Drizzle'))        dbTxt += `\n### Drizzle\n- Define all schemas in a single schema.ts per module — co-locate with the feature\n- Use Drizzle transactions (db.transaction()) for multi-step mutations\n- Never use raw SQL strings — use the Drizzle query builder exclusively\n- Run drizzle-kit generate and review generated SQL before applying migrations`;
+    if (dbs.includes('Redis'))          dbTxt += `\n### Redis\n- Always set TTL on every key — never store without expiry unless intentional\n- Use key namespacing: {service}:{entity}:{id} (e.g. catalog:product:123)\n- Prefer atomic operations (SETNX, INCR, GETSET) over read-then-write patterns\n- Use Redis Streams or Pub/Sub for event-driven communication between services\n- Distributed locks: use SET key value NX PX {ttl} — never roll your own locking\n- Cache invalidation: invalidate on write, not on read — use write-through pattern`;
+    if (dbs.includes('Celery'))         dbTxt += `\n### Celery\n- All tasks must be idempotent — they may be retried on failure\n- Set task timeouts (soft_time_limit, time_limit) on every task definition\n- Use task routing: separate queues for critical, default, and slow tasks\n- Never pass large objects as task arguments — pass IDs and fetch in the task\n- Log task start, success, and failure with correlation IDs for traceability`;
+    if (dbs.includes('BullMQ'))         dbTxt += `\n### BullMQ\n- All jobs must be idempotent — design for at-least-once delivery\n- Use separate queues per priority tier (critical, default, batch)\n- Always define job attempts and backoff strategy (exponential recommended)\n- Never pass large payloads — store data in DB/cache and pass the reference ID\n- Use job events (completed, failed) for observability and alerting`;
+    if (dbs.includes('RabbitMQ'))       dbTxt += `\n### RabbitMQ\n- Use Dead Letter Exchanges (DLX) for failed messages — never silently discard\n- Always ack/nack explicitly — never rely on auto-ack in production consumers\n- Use durable queues and persistent messages for business-critical events\n- One consumer class per message type — keep handlers small and focused`;
+    if (dbs.includes('Kafka'))          dbTxt += `\n### Kafka\n- Consumers must be idempotent — offset commits happen after successful processing\n- Use consumer groups for horizontal scaling; never share a group ID across services\n- Schema Registry (Avro/Protobuf) for all event schemas — no raw JSON in production\n- Partition by a meaningful key (user_id, order_id) for ordered processing\n- Dead Letter Topics for poison messages — never block the partition`;
+    if (dbs.includes('Docker'))         dbTxt += `\n### Docker\n- One process per container — never run multiple services in one container\n- Use multi-stage builds to keep production images minimal\n- Never run containers as root — define a non-root USER in Dockerfile\n- Pin base image versions (FROM node:20.11-alpine, not node:latest)\n- Health checks on every service container (HEALTHCHECK instruction)\n- Secrets via environment variables or Docker secrets — never baked into images`;
+    if (dbs.includes('Podman'))         dbTxt += `\n### Podman\n- Prefer rootless containers — never run as root in production\n- Use podman-compose for local development parity with production\n- Generate Kubernetes-compatible YAML with podman generate kube\n- Use systemd units (podman generate systemd) for service management\n- Image builds must be reproducible — pin all base image digests`;
+    if (dbs.includes('Kubernetes'))     dbTxt += `\n### Kubernetes\n- Resource requests and limits on every container — never leave them unset\n- Use Liveness and Readiness probes on all deployments\n- ConfigMaps for config, Secrets for credentials — never hardcode in manifests\n- Horizontal Pod Autoscaler for stateless services; StatefulSet for stateful workloads\n- Namespace isolation per environment (dev, staging, prod)\n- Never use latest image tag in production — always pin to a specific digest or semver`;
+    if (dbs.includes('Helm'))           dbTxt += `\n### Helm\n- Use Helm values files per environment (values.dev.yaml, values.prod.yaml)\n- Never hardcode secrets in values files — use Sealed Secrets or external-secrets\n- Version charts semantically and document breaking changes in CHANGELOG\n- Lint charts in CI (helm lint) before every release\n- Use helm diff plugin for dry-run review before upgrades`;
+    if (dbs.includes('Terraform'))      dbTxt += `\n### Terraform\n- All infrastructure as code — no manual changes in cloud console\n- Remote state in S3/GCS with state locking (DynamoDB/GCS lock)\n- Separate state files per environment (dev, staging, prod)\n- Plan output must be reviewed and approved before every apply\n- Use modules for reusable infrastructure patterns\n- Tag all resources with: environment, team, service, cost-center`;
+    if (dbs.includes('Ansible'))        dbTxt += `\n### Ansible\n- Idempotency is mandatory — every task must be safe to run multiple times\n- Use roles to encapsulate reusable configuration logic\n- Secrets via Ansible Vault — never in plaintext in playbooks or vars\n- Pin collection and role versions in requirements.yml\n- Use --check mode in CI for dry-run validation before applying`;
+    if (dbs.includes('GitHub Actions')) dbTxt += `\n### GitHub Actions\n- Pin all action versions to a full commit SHA — never use @main or @latest\n- Secrets via GitHub Secrets — never in workflow YAML or env vars in code\n- Separate workflows: CI (on PR), CD (on merge to main), nightly (scheduled)\n- Use concurrency groups to cancel stale runs on the same branch\n- Cache dependencies (npm, pip, gradle) to keep CI under 5 minutes\n- Required status checks on main — no direct pushes, PRs only`;
+    if (dbs.includes('GitLab CI'))      dbTxt += `\n### GitLab CI\n- Use include: to share pipeline templates across projects — no copy-paste\n- Secrets via GitLab CI/CD Variables (masked + protected) — never in .gitlab-ci.yml\n- Define stages explicitly; use needs: for DAG-based parallelism\n- Cache dependencies per branch using cache:key: ${CI_COMMIT_REF_SLUG}\n- Use rules: instead of only:/except: for conditional job execution`;
+    if (dbs.includes('Bitbucket Pipelines')) dbTxt += `\n### Bitbucket Pipelines\n- Store secrets in Repository Variables or Deployment Variables — never in bitbucket-pipelines.yml\n- Use pipes for reusable steps instead of duplicating shell scripts\n- Separate pipelines per branch type: PR, main, release\n- Cache dependencies with the caches: key to speed up builds\n- Use manual: true for production deployments — require explicit trigger`;
+    if (dbs.includes('Jenkins'))        dbTxt += `\n### Jenkins\n- Use declarative Pipeline (Jenkinsfile) — never freestyle jobs for new pipelines\n- Credentials stored in Jenkins Credentials Store — never in Jenkinsfile\n- Use shared libraries for reusable pipeline logic across repos\n- Agent definitions must specify resource limits (memory, CPU)\n- Always archive artifacts and publish test reports for traceability`;
+    if (dbs.includes('CircleCI'))       dbTxt += `\n### CircleCI\n- Use orbs for reusable commands — prefer official orbs over custom scripts\n- Contexts for shared secrets — project-level env vars for project-specific secrets\n- Separate workflows: test, build, deploy — use requires: for sequencing\n- Resource classes must match workload — don't over-provision\n- Use approval jobs for manual gates before production deployments`;
+    if (dbs.includes('ArgoCD'))         dbTxt += `\n### ArgoCD\n- Use GitOps — ArgoCD syncs from git, never apply manifests manually\n- App of Apps pattern for managing multiple applications\n- Use syncPolicy.automated only with selfHeal and prune enabled explicitly\n- Separate git repos for app code and infra manifests\n- Use health checks and sync waves for ordered deployment of dependent resources`;
+    if (dbs.includes('TeamCity'))       dbTxt += `\n### TeamCity\n- Use Kotlin DSL (build configuration as code) — no manual UI-only configs\n- Parameters stored as typed parameters — secrets use PasswordParameter type\n- Use build chains for pipeline dependencies across projects\n- Templates for shared build step logic — avoid duplicating configuration`;
+    if (dbs.includes('AWS'))            dbTxt += `\n### AWS\n- IAM least-privilege: every service role has only the permissions it needs\n- No AWS credentials in code or environment — use IAM roles and instance profiles\n- Enable CloudTrail and Config for audit logging in all regions\n- S3 buckets: block public access by default, enable versioning for important data\n- RDS: enable automated backups (7-day minimum), enable Multi-AZ for production\n- Use Parameter Store or Secrets Manager for all secrets — never SSM plain text`;
+    if (dbs.includes('GCP'))            dbTxt += `\n### GCP\n- Service accounts follow least-privilege — no Editor or Owner roles for services\n- Use Workload Identity for GKE — no service account key files\n- Enable Cloud Audit Logs for all API activity in production\n- Cloud Storage: uniform bucket-level access, no per-object ACLs\n- Cloud SQL: enable automated backups, point-in-time recovery, private IP only\n- Secrets in Secret Manager — never in environment variables or source code`;
+    if (dbs.includes('Azure'))          dbTxt += `\n### Azure\n- Use Managed Identity for all service-to-service auth — no client secrets in code\n- RBAC principle of least privilege — no Owner/Contributor roles for services\n- Enable Diagnostic Settings on all resources — route logs to Log Analytics Workspace\n- Azure Key Vault for all secrets, certificates, and connection strings\n- Use Private Endpoints for storage, databases, and Key Vault in production\n- Enforce Azure Policy for naming conventions, tagging, and allowed regions`;
+    if (dbs.includes('Vercel'))         dbTxt += `\n### Vercel\n- Use Vercel Environment Variables for all config — never in .env files committed to git\n- Preview deployments for every PR — use for QA before merging\n- Edge Functions for latency-sensitive logic; Serverless for standard API routes\n- Use next/image and Vercel Image Optimization — never raw img in Next.js projects\n- Monitor function duration and cold starts in Vercel Analytics`;
+    if (dbs.includes('Railway'))        dbTxt += `\n### Railway\n- Use Railway Variables for all secrets — never commit .env files\n- Link services within a project to use internal networking (not public URLs)\n- Use Railway's health check endpoint to prevent traffic to unhealthy deploys\n- Enable automatic restarts on crash for all production services`;
+    if (dbs.includes('Fly.io'))         dbTxt += `\n### Fly.io\n- Use fly secrets set for all credentials — never in fly.toml\n- Define health checks in [[services.tcp_checks]] — required for zero-downtime deploys\n- Use fly volumes for persistent storage — not ephemeral container storage\n- Multi-region deployments: set primary_region and use fly regions add for redundancy`;
+  }
+
+  // Observability rules
+  let obsTxt = '';
+  if (S.obs.size > 0) {
+    obsTxt = `\n\n## OBSERVABILITY RULES\n`;
+    if (obss.includes('Prometheus'))     obsTxt += `\n### Prometheus\n- Expose /metrics endpoint on all services — never skip in production\n- Use meaningful metric names: {service}_{subsystem}_{name}_{unit}\n- Prefer histograms over summaries for latency — better for aggregation\n- Add labels for environment, service, and version — avoid high-cardinality labels (no user_id)\n- Alert on SLO breaches, not raw metric thresholds — define error budgets`;
+    if (obss.includes('Grafana'))        obsTxt += `\n### Grafana\n- Dashboards as code — store in git, provision via Grafana provisioning or Terraform\n- USE method for resources: Utilization, Saturation, Errors per service\n- RED method for services: Rate, Errors, Duration\n- Use dashboard variables for environment, region, service filtering\n- Never commit Grafana API keys — use service accounts with minimal permissions`;
+    if (obss.includes('OpenTelemetry')) obsTxt += `\n### OpenTelemetry\n- Instrument all services with OTel SDK — traces, metrics, and logs unified\n- Use W3C TraceContext propagation (traceparent header) across all services\n- Auto-instrumentation first, manual spans only for business-critical operations\n- Export to OTel Collector — never send directly to backends from app code\n- Add baggage for correlation IDs, tenant IDs, and feature flags`;
+    if (obss.includes('Datadog'))        obsTxt += `\n### Datadog\n- Use Unified Service Tagging: env, service, version on all resources\n- APM traces correlated with logs via trace_id injection — enable in all services\n- Set up SLOs and Error Budgets — alert on burn rate, not raw error count\n- Use Log Pipelines for parsing — never rely on raw log text for alerting\n- Synthetic tests for all critical user journeys — run every 5 minutes`;
+    if (obss.includes('Sentry'))         obsTxt += `\n### Sentry\n- Capture exceptions at the boundary — never swallow errors silently\n- Set release and environment tags on every event for filtering\n- Use breadcrumbs to capture request context, DB queries, and user actions\n- Configure alert rules per project: new issue, regression, spike thresholds\n- Source maps for frontend — upload on every deployment, never commit to repo`;
+    if (obss.includes('New Relic'))      obsTxt += `\n### New Relic\n- Use New Relic APM agents for all backend services — auto-instrumentation enabled\n- Custom attributes for business context: user_id, tenant_id, feature_flag\n- Define Service Level Objectives in New Relic — tie to deployment tracking\n- Use New Relic Logs with log forwarding — correlate with traces via entity linking\n- Alerts use static + baseline conditions — avoid alert fatigue with proper thresholds`;
+    if (obss.includes('Jaeger'))         obsTxt += `\n### Jaeger\n- All inter-service calls must propagate trace context — use OTel SDK for instrumentation\n- Sample at the edge (ingress) — use probabilistic or rate-limiting sampling\n- Tag spans with: http.method, http.status_code, db.statement, error\n- Use Jaeger Service Performance Monitoring (SPM) for RED metrics from traces\n- Retention policy: 7 days minimum for traces, 30 days for sampled error traces`;
+    if (obss.includes('ELK Stack'))      obsTxt += `\n### ELK Stack (Elasticsearch + Logstash + Kibana)\n- Structured JSON logs only — never unstructured text in production\n- Mandatory fields in every log: timestamp, level, service, trace_id, environment\n- Use Index Lifecycle Management (ILM) — hot/warm/cold/delete tiers for cost control\n- Log levels: ERROR for exceptions, WARN for recoverable issues, INFO for business events, DEBUG disabled in prod\n- Never log PII, passwords, or tokens — use field masking in Logstash pipelines`;
+    if (obss.includes('Loki'))           obsTxt += `\n### Loki\n- Labels must be low-cardinality: app, env, namespace — never user_id or request_id as labels\n- Use structured logs (JSON) for efficient querying with LogQL\n- Correlate logs with traces via trace_id field — integrate with Tempo\n- Use recording rules for high-frequency queries — avoid real-time aggregations on large ranges\n- Retention per stream: production logs 30 days, debug logs 7 days`;
+    if (obss.includes('Splunk'))         obsTxt += `\n### Splunk\n- Use Splunk HEC (HTTP Event Collector) for log ingestion — never write directly to filesystem\n- Structure all events as JSON with mandatory fields: timestamp, source, sourcetype, host\n- Use index per environment and data type — never route everything to the default index\n- Build SPL searches with summary indexing for high-frequency dashboards\n- Use Splunk alerts with throttling — avoid alert storms from correlated events\n- Role-based access: restrict index access per team — no shared admin credentials\n- Archive cold data to S3/GCS via SmartStore — define retention policy per index`;
+  }
+
+  // Code Style rules
+  let styleTxt = '';
+  if (S.style.size > 0) {
+    styleTxt = `\n\n## CODE STYLE\n\nPreferred paradigm: ${styles}.\n`;
+    if (styles.includes('OOP') && !styles.includes('Functional')) styleTxt += `
+- Model domain concepts as classes with clear responsibilities
+- Prefer composition over inheritance — favour interfaces and mixins
+- Encapsulate state — no public mutable fields
+- Use the Factory, Builder, and Repository patterns where appropriate
+- Classes should be small and focused — one reason to change (SRP)
+- Constructors should not contain logic — use factory methods for complex creation`;
+    if (styles.includes('Functional') && !styles.includes('OOP')) styleTxt += `
+- Prefer pure functions — same input always produces same output, no side effects
+- Immutability by default — never mutate arguments or external state
+- Compose small functions instead of writing large procedural blocks
+- Use map, filter, reduce over imperative loops
+- Side effects (I/O, DB, HTTP) must be explicit and isolated at the boundaries
+- Avoid shared mutable state — use closures, monads, or functional data structures`;
+    if (styles.includes('Functional + OOP')) styleTxt += `
+- Use OOP for structural boundaries (modules, services, repositories)
+- Use functional style inside those boundaries (pure transforms, immutable data)
+- Classes own state and lifecycle; functions handle data transformation
+- Avoid mutation inside functions — return new objects/arrays
+- Use Either/Result types for error handling instead of throwing exceptions
+- Prefer method chaining and pipeline patterns for data processing`;
+    if (styles.includes('Reactive')) styleTxt += `
+- Model asynchronous data flows as Observable streams
+- Use operators (map, switchMap, combineLatest) instead of nested subscriptions
+- Always handle errors in streams — use catchError, never let streams die silently
+- Unsubscribe to prevent memory leaks — use takeUntil, async pipe, or DestroyRef
+- Hot vs Cold observables: be explicit about which you're creating
+- Avoid subscribing inside subscribe — flatten with switchMap/mergeMap/concatMap`;
+    if (styles.includes('Procedural')) styleTxt += `
+- Keep functions short and single-purpose — max 30 lines per function
+- Pass data explicitly — avoid global state and implicit dependencies
+- Group related functions in modules with clear public interfaces
+- Use early returns to avoid deep nesting
+- Document non-obvious logic with inline comments`;
+  }
+
+  const fmtHdr = {
+    cursor: '# .cursorrules — applied automatically by Cursor AI',
+    claude: '# CLAUDE.md — system instructions for Claude Code',
+    system: '# System Prompt — paste into Custom Instructions',
+  };
+
+  const stackLine = [langs, fws, dbs, obss, styles].filter(Boolean).join(' | ');
+
+  const out =
+`${fmtHdr[S.fmt]}
+# Generated by CodeRules Generator
+# Stack: ${stackLine}
+# ──────────────────────────────────────────
+${archTxt}
+${fwTxt}
+${dbTxt}
+${obsTxt}
+${styleTxt}
+
+## BEHAVIOR
+
+- Strictness: ${strictTxt}
+- Comments: ${commentTxt}
+- Stack: ${stackLine}
+
+When writing or reviewing code:
+1. Always reason about the architecture layer before writing code
+2. If a requirement is ambiguous — ask, don't assume
+3. Prefer explicit over implicit
+4. When suggesting refactoring, explain *why* — not just *what*
+5. Never introduce a new dependency without mentioning alternatives
+6. Flag tech debt proactively with a TODO comment and an explanation
+
+## CODE RULES
+
+${rules.join('\n')}
+
+## COMMIT & PR DISCIPLINE
+
+- Commits: imperative mood, max 72 chars, reference issue if applicable
+- PR description must include: what, why, how, and how to test
+- No commented-out code in PRs
+
+## FORBIDDEN PATTERNS
+
+- God objects / God services (> 500 lines without clear reason)
+- Magic numbers and strings — use named constants
+- Business logic in HTTP handlers / controllers
+- Direct database access from presentation layer
+- print() / console.log() left in production code`;
+
+  document.getElementById('output').textContent = out;
+  document.getElementById('out-status').textContent = 'GENERATED';
+  document.getElementById('m-rules').textContent = rules.length;
+  document.getElementById('m-fw').textContent = [...S.fw].length + [...S.db].length + [...S.obs].length;
+  document.getElementById('m-arch').textContent = [...S.arch].length + 'P';
+  document.getElementById('m-strict').textContent = ['','SOFT','MID','HIGH'][strict];
+}
+
+function copyOut() {
+  const el = document.getElementById('output');
+  const txt = el.textContent;
+  if (!txt.includes('##')) return;
+
+  // Method 1: modern clipboard API
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt)
+      .then(() => showToast('COPIED TO CLIPBOARD', 'Text saved to clipboard'))
+      .catch(() => fallbackCopy(txt));
+  } else {
+    fallbackCopy(txt);
+  }
+}
+
+function fallbackCopy(txt) {
+  // Method 2: textarea trick — works everywhere
+  const ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('COPIED TO CLIPBOARD', 'Text saved to clipboard');
+  } catch(e) {
+    showToast('SELECT ALL & COPY MANUALLY', 'Ctrl+A then Ctrl+C');
+  }
+  document.body.removeChild(ta);
+}
+
+function showToast(msg, sub) {
+  const t = document.getElementById('toast');
+  const b = document.getElementById('toast-backdrop');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-sub').textContent = sub || '';
+  document.getElementById('toast-icon') && (document.querySelector('.toast-icon').textContent = msg.includes('COPIED') ? '✓' : '↓');
+  t.classList.add('show');
+  b.classList.add('show');
+  setTimeout(() => {
+    t.classList.remove('show');
+    b.classList.remove('show');
+  }, 2200);
+}
+</script>
+</body>
+</html>
